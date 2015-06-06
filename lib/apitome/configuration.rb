@@ -1,39 +1,46 @@
 module Apitome
   class Configuration
-    attr_accessor *[
-      :mount_at,
-      :root,
-      :doc_path,
-      :title,
-      :layout,
-      :code_theme,
-      :css_override,
-      :js_override,
-      :readme,
-      :single_page,
-      :url_formatter
-    ]
+    attr_reader :settings
 
-    def initialize
-      @mount_at     = "/api/docs"
-      @root         = nil # will default to Rails.root if left unset
-      @doc_path     = "doc/api"
-      @title        = "Apitome Documentation"
-      @layout       = "apitome/application"
-      @code_theme   = "default"
-      @css_override = nil
-      @js_override  = nil
-      @readme       = "../api.md"
-      @single_page  = true
-      @url_formatter = -> (str) { str.gsub(/\.json$/, '').underscore.gsub(/[^0-9a-z]+/i, '-') }
+    def initialize(parent = nil)
+      @parent = parent
+      @settings = {}
+    end
+
+    def self.add_setting(name, opts = {})
+      define_method("#{name}=") { |value| settings[name] = value }
+      define_method("#{name}") do
+        if settings.has_key?(name)
+          settings[name]
+        elsif @parent.respond_to?(:settings) && @parent.settings.has_key?(name)
+          @parent.settings[name]
+        else
+          opts[:default]
+        end
+      end
+    end
+
+    add_setting :mount_at, default: '/api/docs'
+    add_setting :doc_path, default: 'doc/api'
+    add_setting :title, default: 'Apitome Documentation'
+    add_setting :layout, default: 'apitome/application'
+    add_setting :code_theme, default: 'default'
+    add_setting :css_override, default: nil
+    add_setting :js_override, default: nil
+    add_setting :readme, default: '../api.md'
+    add_setting :single_page, default: true
+    add_setting :url_formatter, default: -> (str) { str.gsub(/\.json$/, '').underscore.gsub(/[^0-9a-z]+/i, '-') }
+
+    def root
+      settings[:root]
     end
 
     def root=(path)
-      @root = Pathname.new(path.to_s) if path.present?
+      settings[:root] = Pathname.new(path.to_s) if path.present?
     end
 
     def code_theme_url
-      "apitome/highlight_themes/#{@code_theme}"
+      "apitome/highlight_themes/#{code_theme}"
     end
   end
 end
