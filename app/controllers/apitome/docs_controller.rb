@@ -14,9 +14,16 @@ class Apitome::DocsController < ActionController::Base
   ]
 
   def index
+    if using_groups? && params[:path].nil?
+      render 'groups'
+    end
   end
 
   def show
+    path = params[:path]
+    if using_groups? && !path.empty? && !path.include?('/')
+      render action: 'index'
+    end
   end
 
   def simulate
@@ -31,14 +38,23 @@ class Apitome::DocsController < ActionController::Base
 
   private
 
-  def file_for(file)
-    file = Apitome.configuration.root.join(Apitome.configuration.doc_path, file)
+  def file_for(path)
+    if configuration.group?
+      segments = path.split('/')
+      path = segments[1..-1].join('/') if segments[0] == configuration.group_name
+    end
+
+    file = configuration.root.join(configuration.doc_path, path)
     raise Apitome::FileNotFoundError.new("Unable to find #{file}") unless File.exists?(file)
     File.read(file)
   end
 
   def resources
-    @resources ||= JSON.parse(file_for("index.json"))["resources"]
+    file = "index.json"
+    if configuration.group?
+      file = "#{configuration.group_name}/index.json"
+    end
+    @resources ||= JSON.parse(file_for(file))["resources"]
   end
 
   def example
@@ -50,9 +66,9 @@ class Apitome::DocsController < ActionController::Base
   end
 
   def formatted_readme
-    return unless Apitome.configuration.readme
-    file = Apitome.configuration.root.join(Apitome.configuration.doc_path, Apitome.configuration.readme)
-    rendered_markdown(file_for(file))
+    return unless configuration.readme
+    file = configuration.root.join(configuration.doc_path, configuration.readme)
+    rendered_markdown(file_for(file.to_s))
   end
 
   def rendered_markdown(string)
@@ -87,6 +103,31 @@ class Apitome::DocsController < ActionController::Base
   end
 
   def id_for(str)
-    Apitome.configuration.url_formatter.call(str)
+    configuration.url_formatter.call(str)
   end
+
+  def configuration
+    if Apitome.configuration.groups.empty? || params[:path].nil?
+      Apitome.configuration
+    else
+      name = params[:path].split('/').first
+      group = Apitome.configuration.groups.find { |g| g.group_name == name }
+      if group.nil?
+        raise Apitome::UndefinedGroupError
+      else
+        group
+      end
+    end
+  end
+
+  def groups
+    Apitome.configuration.groups
+  end
+
+  def using_groups?
+    !groups.empty?
+  end
+
+  helper_method :configuration
+  helper_method :groups
 end

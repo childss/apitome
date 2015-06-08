@@ -1,16 +1,17 @@
 <ul class="nav sidenav">
-  <% if Apitome.configuration.readme %>
+  <% if configuration.readme %>
     <li>
-      <% if Apitome.configuration.single_page %>
+      <% if configuration.single_page %>
         <a href="#readme"><%= t(:readme) %></a>
       <% else %>
-        <a href="<%= Apitome.configuration.mount_at %>"><%= t(:readme) %></a>
+        <a href="<%= configuration.mount_at %>"><%= t(:readme) %></a>
       <% end %>
     </li>
   <% end %>
+  <% if configuration.groups.empty? %>
   <% resources.each do |resource| %>
     <li>
-      <% if Apitome.configuration.single_page %>
+      <% if configuration.single_page %>
         <a href="#<%= id_for(resource['examples'].first['link']) %>"><%= resource['name'] %></a>
         <ul class="nav">
           <% resource['examples'].each do |example| %>
@@ -18,13 +19,14 @@
           <% end %>
         </ul>
       <% else %>
-        <li><%= link_to resource['name'], "#{Apitome.configuration.mount_at}/#{resource['examples'].first['link'].gsub(/\.json$/, '')}" %></li>
+        <li><%= link_to resource['name'], "#{configuration.mount_at}/#{resource['examples'].first['link'].gsub(/\.json$/, '')}" %></li>
         <ul class="nav">
           <% resource['examples'].each do |example| %>
-            <li><%= link_to example['description'], "#{Apitome.configuration.mount_at}/#{example['link'].gsub(/\.json$/, '')}" %></li>
+            <li><%= link_to example['description'], "#{configuration.mount_at}/#{example['link'].gsub(/\.json$/, '')}" %></li>
           <% end %>
         </ul>
       <% end %>
     </li>
+  <% end %>
   <% end %>
 </ul>
